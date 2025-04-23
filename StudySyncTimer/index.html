@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EstudoSync Timer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box card">
+             <div class="logo auth-logo">
+                <i class="fas fa-sync-alt"></i> <span>EstudoSync</span>
+            </div>
+            <h2 id="auth-title">Login</h2>
+            <div id="auth-error" class="auth-error"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn auth-btn">Entrar</button>
+            </form>
+
+            <form id="register-form" class="hidden">
+                 <div class="form-group">
+                    <label for="register-username">Nome de Usuário</label>
+                    <input type="text" id="register-username" required maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Senha (mín. 6 caracteres)</label>
+                    <input type="password" id="register-password" required minlength="6">
+                </div>
+                <button type="submit" class="btn auth-btn">Cadastrar</button>
+            </form>
+
+            <p class="auth-toggle">
+                <span id="toggle-to-register">Não tem conta? <a href="#">Cadastre-se</a></span>
+                <span id="toggle-to-login" class="hidden">Já tem conta? <a href="#">Faça Login</a></span>
+            </p>
+        </div>
+    </div>
+
+    <div id="app-content" class="app-container hidden">
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-sync-alt"></i> <span>EstudoSync</span>
+            </div>
+
+            <div class="user-profile">
+                <div class="avatar-container">
+                    <div class="avatar" id="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="status-dot" id="user-status-dot"></div>
+                </div>
+                <div class="user-info">
+                    <span id="user-display-name" class="user-display-name">Carregando...</span>
+                    <span class="status-text" id="user-status-text">Offline</span>
+                     <button id="logout-btn" class="btn btn-small logout-btn">
+                         <i class="fas fa-sign-out-alt"></i> Sair
+                     </button>
+                </div>
+            </div>
+
+            <nav class="menu">
+                 <a href="#" class="menu-item active" data-section="timer">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span>Timer</span>
+                </a>
+                <a href="#" class="menu-item" data-section="statistics">
+                    <i class="fas fa-chart-line"></i> <span>Estatísticas</span>
+                </a>
+                <a href="#" class="menu-item" data-section="friend">
+                    <i class="fas fa-users"></i> <span>Amigos</span>
+                </a>
+                <a href="#" class="menu-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+
+            <div class="theme-switch">
+                <span>Tema</span>
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <section class="section active" id="timer-section">
+                <div class="card main-timer-card">
+                    <div class="timer-mode">
+                        <button class="mode-btn active" data-mode="pomodoro">Pomodoro</button>
+                        <button class="mode-btn" data-mode="shortBreak">Pausa Curta</button>
+                        <button class="mode-btn" data-mode="longBreak">Pausa Longa</button>
+                    </div>
+
+                    <div class="timer-circle">
+                        <div class="progress-ring">
+                            <svg class="progress" width="300" height="300">
+                                <circle class="progress-ring-circle-bg" stroke-width="8" fill="transparent" r="135" cx="150" cy="150"></circle>
+                                <circle class="progress-ring-circle" stroke-width="8" fill="transparent" r="135" cx="150" cy="150"></circle>
+                            </svg>
+                            <div class="timer-display" id="timer-display"> <span id="minutes" class="timer-unit">25</span>
+                                <span class="separator">:</span>
+                                <span id="seconds" class="timer-unit">00</span>
+                            </div>
+                        </div>
+                        </div>
+
+                    <div class="timer-controls">
+                        <button id="start-btn" class="control-btn" title="Iniciar (Espaço)">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="pause-btn" class="control-btn hidden" title="Pausar (Espaço)">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="reset-btn" class="control-btn" title="Resetar (Ctrl+R)">
+                            <i class="fas fa-redo-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="focus-message" id="focus-message">
+                        Hora de focar! 💪
+                    </div>
+                </div>
+
+                <div class="card friend-status-card" id="friend-status-card">
+                    <h2>Status do Amigo</h2>
+                    <div class="friend-status" id="friend-status">
+                        <div class="friend-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="friend-info">
+                            <div class="friend-name" id="friend-name">Nenhum amigo conectado</div>
+                            <div class="friend-current-status" id="friend-current-status">
+                                <span class="status-dot offline"></span>
+                                <span>Offline</span>
+                            </div>
+                            <div class="friend-timer" id="friend-timer" style="display: none;">--:--</div> </div>
+                        <div class="friend-stats-placeholder" id="friend-stats-placeholder" style="display: none;"> <small>Clique para ver o perfil</small>
+                        </div>
+                    </div>
+
+                    <div class="quick-messages">
+                        <h3>Mensagens Rápidas</h3>
+                        <div class="message-buttons">
+                             <button class="message-btn" data-message="Bora estudar!"> <i class="fas fa-book"></i> Bora!</button>
+                             <button class="message-btn" data-message="Pausa?"> <i class="fas fa-coffee"></i> Pausa?</button>
+                             <button class="message-btn" data-message="Foco total!"> <i class="fas fa-bullseye"></i> Foco!</button>
+                             <button class="message-btn" data-message="Boa sorte!"> <i class="fas fa-thumbs-up"></i> Sorte!</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="statistics-section">
+                 <div class="card">
+                    <h2>Minhas Estatísticas</h2>
+                    <div class="stats-summary">
+                        <div class="stats-card">
+                            <div class="stats-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stats-info">
+                                <span class="stats-value" id="today-time">00:00:00</span>
+                                <span class="stats-label">Hoje</span>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-icon"><i class="fas fa-calendar-week"></i></div>
+                            <div class="stats-info">
+                                <span class="stats-value" id="week-time">00:00:00</span>
+                                <span class="stats-label">Semana</span>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                             <div class="stats-icon"><i class="fas fa-check-circle"></i></div>
+                             <div class="stats-info">
+                                 <span class="stats-value" id="pomodoro-count">0</span>
+                                 <span class="stats-label">Pomodoros</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container"> <canvas id="study-chart"></canvas> </div>
+                    <div class="achievements">
+                         <h3>Conquistas</h3>
+                         <div class="achievements-list" id="achievements-list">
+                             </div>
+                    </div>
+                 </div>
+            </section>
+
+            <section class="section" id="friend-section">
+                <div class="card">
+                    <h2>Conectar com Amigo</h2>
+                    <div class="connection-code">
+                        <div class="your-code card">
+                            <h3>Seu código de Conexão</h3>
+                            <div class="code-display" id="your-code">Gerando...</div>
+                            <button id="copy-code" class="btn btn-secondary">
+                                <i class="fas fa-copy"></i> Copiar Meu Código
+                            </button>
+                        </div>
+                        <div class="connect-friend card">
+                            <h3>Adicionar amigo</h3>
+                            <input type="text" id="friend-code" placeholder="Digite o código do amigo">
+                            <button id="add-friend-btn" class="btn">
+                                <i class="fas fa-user-plus"></i> Enviar Pedido
+                            </button>
+                             <button id="disconnect-friend-btn" class="btn btn-danger mt-1" style="display: none;">
+                                <i class="fas fa-user-times"></i> Desconectar Amigo Atual
+                             </button>
+                        </div>
+                    </div>
+
+                    <div class="friend-requests card">
+                        <h3>Pedidos de Amizade Pendentes</h3>
+                        <ul id="friend-requests-list">
+                            <li>Nenhum pedido pendente.</li>
+                        </ul>
+                    </div>
+
+                    <div class="focus-together card">
+                        <h3>Foco Conjunto</h3>
+                        <p>Iniciem uma sessão de estudo sincronizada!</p>
+                        <button id="focus-together-btn" class="btn" disabled>
+                            <i class="fas fa-users"></i> Iniciar Sessão Conjunta
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="settings-section">
+                <div class="card">
+                    <h2>Configurações</h2>
+
+                    <div class="settings-group">
+                        <h3>Tempos Padrão (minutos)</h3>
+                        <div class="setting-item">
+                            <label for="pomodoro-time">Pomodoro:</label>
+                            <div class="number-input">
+                                <button class="decrease">-</button>
+                                <input type="number" id="pomodoro-time" min="1" max="90" value="25">
+                                <button class="increase">+</button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                             <label for="short-break-time">Pausa Curta:</label>
+                             <div class="number-input">
+                                 <button class="decrease">-</button>
+                                 <input type="number" id="short-break-time" min="1" max="30" value="5">
+                                 <button class="increase">+</button>
+                             </div>
+                        </div>
+                        <div class="setting-item">
+                             <label for="long-break-time">Pausa Longa:</label>
+                             <div class="number-input">
+                                 <button class="decrease">-</button>
+                                 <input type="number" id="long-break-time" min="1" max="60" value="15">
+                                 <button class="increase">+</button>
+                            </div>
+                        </div>
+                         <div class="setting-item">
+                            <label for="long-break-interval">Pausa Longa a cada (Pomodoros):</label>
+                            <div class="number-input">
+                                <button class="decrease">-</button>
+                                <input type="number" id="long-break-interval" min="1" max="10" value="4">
+                                <button class="increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="settings-group">
+                        <h3>Comportamento</h3>
+                         <div class="setting-item">
+                            <label for="auto-start-timers">Iniciar timers automaticamente:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="auto-start-timers">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Notificações</h3>
+                        <div class="setting-item">
+                             <label for="sound-notification">Som:</label>
+                             <label class="switch"> <input type="checkbox" id="sound-notification" checked> <span class="slider round"></span> </label>
+                         </div>
+                         <div class="setting-item">
+                             <label for="desktop-notification">Desktop:</label>
+                             <label class="switch"> <input type="checkbox" id="desktop-notification" checked> <span class="slider round"></span> </label>
+                         </div>
+                         <div class="setting-item">
+                             <label for="friend-notification">Amigo:</label>
+                             <label class="switch"> <input type="checkbox" id="friend-notification" checked> <span class="slider round"></span> </label>
+                        </div>
+                    </div>
+
+                    <button id="save-settings" class="btn save-btn">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-icon"><i class="fas fa-bell"></i></div>
+        <div class="notification-content">
+            <div class="notification-title" id="notification-title"></div>
+            <div class="notification-message" id="notification-message"></div>
+        </div>
+        <button class="notification-close">&times;</button>
+    </div>
+
+    <div id="friend-profile-modal" class="modal">
+        <div class="modal-content card">
+            <span class="close-btn" id="close-profile-modal">&times;</span>
+            <h2>Perfil do Amigo</h2>
+            <div class="profile-details">
+                 <div class="friend-avatar-large"> <i class="fas fa-user-circle"></i> </div>
+                 <h3 id="modal-friend-name">Nome do Amigo</h3>
+                 <p>Status: <span id="modal-friend-status">--</span></p>
+                 <p>Timer: <span id="modal-friend-timer">--:--</span></p>
+                 <hr>
+                 <h4>Estatísticas</h4>
+                 <p><i class="fas fa-clock"></i> Hoje: <span id="modal-friend-today-time">00:00:00</span></p>
+                 <p><i class="fas fa-check-circle"></i> Pomodoros: <span id="modal-friend-pomodoros">0</span></p>
+                 <hr>
+                  <button id="remove-friend-modal-btn" class="btn btn-danger">
+                      <i class="fas fa-user-slash"></i> Remover Amizade
+                  </button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="notification-sound">
+        <source src="mixkit-long-pop-2358.wav" type="audio/wav">
+    </audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
